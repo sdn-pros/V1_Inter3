@@ -1,0 +1,58 @@
+---
+
+
+fabric_name: PF_NETWORK
+
+# This is needed for virtual/containerized EOS
+bgp_update_wait_install: false
+
+# Can also be just autovpn
+wan_mode: cv-pathfinder
+
+bgp_as: 65000
+
+bgp_peer_groups:
+  wan_overlay_peers:
+    password: "htm4AZe9mIQOO1uiMuGgYQ=="
+    listen_range_prefixes:
+      - 10.99.101.0/24
+      - 10.99.102.0/24
+      - 10.99.201.0/24
+      - 10.99.202.0/24
+
+
+cv_pathfinder_regions:
+  - name: REGION1
+    id: 1
+    sites:
+      - name: SITE11
+        id: 101
+      - name: SITE12
+        id: 102
+      - name: SITE13
+        id: 103
+      - name: SITE14
+        id: 104
+      - name: TRANSIT1
+        id: 199
+  - name: REGION2
+    id: 2
+    sites:
+      - name: SITE21
+        id: 201
+      - name: SITE22
+        id: 202
+      - name: SITE23
+        id: 203
+      - name: SITE24
+        id: 204
+      - name: TRANSIT2
+        id: 299
+
+wan_ipsec_profiles:
+  control_plane:
+    shared_key: 0110100A480E0A0E231D1E
+  data_plane:
+    shared_key: 0110100A480E0A0E231D1E
+
+
