@@ -253,21 +253,21 @@ interface Dps1
 
 | Interface | Description | Type | Channel Group | IP Address | VRF |  MTU | Shutdown | ACL In | ACL Out |
 | --------- | ----------- | -----| ------------- | ---------- | ----| ---- | -------- | ------ | ------- |
-| Ethernet2 | mpls2 | routed | - | 192.25.76.2/24 | default | - | False | - | - |
-| Ethernet3 | internet2 | routed | - | 192.26.76.2/24 | default | - | False | - | - |
+| Ethernet2 | mpls_r2 | routed | - | 192.25.76.2/24 | default | - | False | - | - |
+| Ethernet3 | BT | routed | - | 192.26.76.2/24 | default | - | False | - | - |
 
 #### Ethernet Interfaces Device Configuration
 
 ```eos
 !
 interface Ethernet2
-   description mpls2
+   description mpls_r2
    no shutdown
    no switchport
    ip address 192.25.76.2/24
 !
 interface Ethernet3
-   description internet2
+   description BT
    no shutdown
    no switchport
    ip address 192.26.76.2/24
@@ -479,6 +479,28 @@ ASN Notation: asplain
 | Send community | all |
 | Maximum routes | 0 (no limit) |
 
+##### WAN-RR-OVERLAY-PEERS
+
+| Settings | Value |
+| -------- | ----- |
+| Address Family | wan |
+| Remote AS | 65000 |
+| Route Reflector Client | Yes |
+| Source | Dps1 |
+| BFD | True |
+| BFD Timers | interval: 1000, min_rx: 1000, multiplier: 10 |
+| TTL Max Hops | 1 |
+| Send community | all |
+| Maximum routes | 0 (no limit) |
+
+#### BGP Neighbors
+
+| Neighbor | Remote AS | VRF | Shutdown | Send-community | Maximum-routes | Allowas-in | BFD | RIB Pre-Policy Retain | Route-Reflector Client | Passive | TTL Max Hops |
+| -------- | --------- | --- | -------- | -------------- | -------------- | ---------- | --- | --------------------- | ---------------------- | ------- | ------------ |
+| 10.99.102.1 | Inherited from peer group WAN-RR-OVERLAY-PEERS | default | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS |
+| 10.99.102.2 | Inherited from peer group WAN-RR-OVERLAY-PEERS | default | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS |
+| 10.99.102.4 | Inherited from peer group WAN-RR-OVERLAY-PEERS | default | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | Inherited from peer group WAN-RR-OVERLAY-PEERS | - | Inherited from peer group WAN-RR-OVERLAY-PEERS |
+
 #### Router BGP EVPN Address Family
 
 - Next-hop resolution is **disabled**
@@ -488,6 +510,7 @@ ASN Notation: asplain
 | Peer Group | Activate | Encapsulation |
 | ---------- | -------- | ------------- |
 | WAN-OVERLAY-PEERS | True | default |
+| WAN-RR-OVERLAY-PEERS | True | default |
 
 #### Router BGP IPv4 SR-TE Address Family
 
@@ -496,6 +519,7 @@ ASN Notation: asplain
 | Peer Group | Activate | Route-map In | Route-map Out |
 | ---------- | -------- | ------------ | ------------- |
 | WAN-OVERLAY-PEERS | True | - | - |
+| WAN-RR-OVERLAY-PEERS | True | - | - |
 
 #### Router BGP Link-State Address Family
 
@@ -504,6 +528,7 @@ ASN Notation: asplain
 | Peer Group | Activate | Missing policy In action | Missing policy Out action |
 | ---------- | -------- | ------------------------ | ------------------------- |
 | WAN-OVERLAY-PEERS | True | - | deny |
+| WAN-RR-OVERLAY-PEERS | True | - | - |
 
 ##### Link-State Path Selection Configuration
 
@@ -518,6 +543,7 @@ ASN Notation: asplain
 | Peer Group | Activate |
 | ---------- | -------- |
 | WAN-OVERLAY-PEERS | True |
+| WAN-RR-OVERLAY-PEERS | True |
 
 #### Router BGP VRFs
 
@@ -545,30 +571,49 @@ router bgp 65000
    neighbor WAN-OVERLAY-PEERS bfd
    neighbor WAN-OVERLAY-PEERS bfd interval 1000 min-rx 1000 multiplier 10
    neighbor WAN-OVERLAY-PEERS ttl maximum-hops 1
-   neighbor WAN-OVERLAY-PEERS password 7 <removed>
    neighbor WAN-OVERLAY-PEERS send-community
    neighbor WAN-OVERLAY-PEERS maximum-routes 0
+   neighbor WAN-RR-OVERLAY-PEERS peer group
+   neighbor WAN-RR-OVERLAY-PEERS remote-as 65000
+   neighbor WAN-RR-OVERLAY-PEERS update-source Dps1
+   neighbor WAN-RR-OVERLAY-PEERS route-reflector-client
+   neighbor WAN-RR-OVERLAY-PEERS bfd
+   neighbor WAN-RR-OVERLAY-PEERS bfd interval 1000 min-rx 1000 multiplier 10
+   neighbor WAN-RR-OVERLAY-PEERS ttl maximum-hops 1
+   neighbor WAN-RR-OVERLAY-PEERS send-community
+   neighbor WAN-RR-OVERLAY-PEERS maximum-routes 0
+   neighbor 10.99.102.1 peer group WAN-RR-OVERLAY-PEERS
+   neighbor 10.99.102.1 description RR1
+   neighbor 10.99.102.2 peer group WAN-RR-OVERLAY-PEERS
+   neighbor 10.99.102.2 description RR2
+   neighbor 10.99.102.4 peer group WAN-RR-OVERLAY-PEERS
+   neighbor 10.99.102.4 description RR4
    redistribute connected route-map RM-CONN-2-BGP
    !
    address-family evpn
       neighbor WAN-OVERLAY-PEERS activate
+      neighbor WAN-RR-OVERLAY-PEERS activate
       next-hop resolution disabled
    !
    address-family ipv4
       no neighbor WAN-OVERLAY-PEERS activate
+      no neighbor WAN-RR-OVERLAY-PEERS activate
    !
    address-family ipv4 sr-te
       neighbor WAN-OVERLAY-PEERS activate
+      neighbor WAN-RR-OVERLAY-PEERS activate
    !
    address-family link-state
       neighbor WAN-OVERLAY-PEERS activate
       neighbor WAN-OVERLAY-PEERS missing-policy direction out action deny
+      neighbor WAN-RR-OVERLAY-PEERS activate
       path-selection role consumer propagator
    !
    address-family path-selection
       bgp additional-paths receive
       bgp additional-paths send any
       neighbor WAN-OVERLAY-PEERS activate
+      neighbor WAN-RR-OVERLAY-PEERS activate
    !
    vrf default
       rd 10.99.101.3:1
@@ -752,13 +797,7 @@ application traffic recognition
 
 | Setting | Value |
 | ------  | ----- |
-| Path Group ID | 1002 |
-
-##### Path Group internet_path2
-
-| Setting | Value |
-| ------  | ----- |
-| Path Group ID | 1006 |
+| Path Group ID | 1001 |
 | IPSec profile | CP-PROFILE |
 
 ###### Local Interfaces
@@ -767,6 +806,14 @@ application traffic recognition
 | -------------- | -------------- | ---------------------- |
 | Ethernet3 | - |  |
 
+###### Static Peers
+
+| Router IP | Name | IPv4 address(es) |
+| --------- | ---- | ---------------- |
+| 10.99.102.1 | RR1 | 192.16.71.2 |
+| 10.99.102.2 | RR2 | 192.16.72.2 |
+| 10.99.102.4 | RR4 | 192.26.77.2 |
+
 ##### Path Group LAN_HA
 
 | Setting | Value |
@@ -774,13 +821,19 @@ application traffic recognition
 | Path Group ID | 65535 |
 | Flow assignment | LAN |
 
-##### Path Group mpls_path
+##### Path Group mpls_global_path
 
 | Setting | Value |
 | ------  | ----- |
-| Path Group ID | 1001 |
+| Path Group ID | 1006 |
 
-##### Path Group mpls_path2
+##### Path Group mpls_r1_path
+
+| Setting | Value |
+| ------  | ----- |
+| Path Group ID | 1002 |
+
+##### Path Group mpls_r2_path
 
 | Setting | Value |
 | ------  | ----- |
@@ -793,12 +846,18 @@ application traffic recognition
 | -------------- | -------------- | ---------------------- |
 | Ethernet2 | - |  |
 
+###### Static Peers
+
+| Router IP | Name | IPv4 address(es) |
+| --------- | ---- | ---------------- |
+| 10.99.102.4 | RR4 | 192.25.77.2 |
+
 #### Load-balance Policies
 
 | Policy Name | Jitter (ms) | Latency (ms) | Loss Rate (%) | Path Groups (priority) | Lowest Hop Count |
 | ----------- | ----------- | ------------ | ------------- | ---------------------- | ---------------- |
-| LB-DEFAULT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>internet_path2 (1)<br>LAN_HA (1)<br>mpls_path (1)<br>mpls_path2 (1) | False |
-| LB-DEFAULT-POLICY-DEFAULT | - | - | - | internet_path (1)<br>internet_path2 (1)<br>LAN_HA (1)<br>mpls_path (1)<br>mpls_path2 (1) | False |
+| LB-DEFAULT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>LAN_HA (1)<br>mpls_global_path (1)<br>mpls_r1_path (1)<br>mpls_r2_path (1) | False |
+| LB-DEFAULT-POLICY-DEFAULT | - | - | - | internet_path (1)<br>LAN_HA (1)<br>mpls_global_path (1)<br>mpls_r1_path (1)<br>mpls_r2_path (1) | False |
 
 #### Router Path-selection Device Configuration
 
@@ -808,36 +867,52 @@ router path-selection
    peer dynamic source stun
    tcp mss ceiling ipv4 ingress
    !
-   path-group internet_path id 1002
-   !
-   path-group internet_path2 id 1006
+   path-group internet_path id 1001
       ipsec profile CP-PROFILE
       !
       local interface Ethernet3
+      !
+      peer static router-ip 10.99.102.1
+         name RR1
+         ipv4 address 192.16.71.2
+      !
+      peer static router-ip 10.99.102.2
+         name RR2
+         ipv4 address 192.16.72.2
+      !
+      peer static router-ip 10.99.102.4
+         name RR4
+         ipv4 address 192.26.77.2
    !
    path-group LAN_HA id 65535
       flow assignment lan
    !
-   path-group mpls_path id 1001
+   path-group mpls_global_path id 1006
    !
-   path-group mpls_path2 id 1005
+   path-group mpls_r1_path id 1002
+   !
+   path-group mpls_r2_path id 1005
       ipsec profile CP-PROFILE
       !
       local interface Ethernet2
+      !
+      peer static router-ip 10.99.102.4
+         name RR4
+         ipv4 address 192.25.77.2
    !
    load-balance policy LB-DEFAULT-POLICY-CONTROL-PLANE
       path-group internet_path
-      path-group internet_path2
       path-group LAN_HA
-      path-group mpls_path
-      path-group mpls_path2
+      path-group mpls_global_path
+      path-group mpls_r1_path
+      path-group mpls_r2_path
    !
    load-balance policy LB-DEFAULT-POLICY-DEFAULT
       path-group internet_path
-      path-group internet_path2
       path-group LAN_HA
-      path-group mpls_path
-      path-group mpls_path2
+      path-group mpls_global_path
+      path-group mpls_r1_path
+      path-group mpls_r2_path
 ```
 
 ## STUN

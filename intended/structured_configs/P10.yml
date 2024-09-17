@@ -16,7 +16,6 @@ router_bgp:
     type: wan
     update_source: Dps1
     bfd: true
-    password: htm4AZe9mIQOO1uiMuGgYQ==
     send_community: all
     maximum_routes: 0
     remote_as: '65000'
@@ -64,6 +63,14 @@ router_bgp:
     peer_group: WAN-OVERLAY-PEERS
     peer: RR2
     description: RR2
+  - ip_address: 10.99.102.3
+    peer_group: WAN-OVERLAY-PEERS
+    peer: RR3
+    description: RR3
+  - ip_address: 10.99.102.4
+    peer_group: WAN-OVERLAY-PEERS
+    peer: RR4
+    description: RR4
   vrfs:
   - name: default
     rd: 10.99.101.61:1
@@ -95,13 +102,13 @@ ethernet_interfaces:
   ip_address: 192.15.51.2/24
   shutdown: false
   type: routed
-  description: mpls
+  description: mpls_r1
 - name: Ethernet3
   peer_type: l3_interface
   ip_address: 192.16.51.2/24
   shutdown: false
   type: routed
-  description: internet
+  description: comcast
 - name: Ethernet4
   peer_type: l3_interface
   ip_address: 192.51.81.1/24
@@ -119,7 +126,7 @@ ethernet_interfaces:
   ip_address: 192.51.75.1/24
   shutdown: false
   type: routed
-  description: internet_global
+  description: ATT
 loopback_interfaces:
 - name: Loopback0
   description: Router_ID
@@ -254,14 +261,14 @@ router_path_selection:
   tcp_mss_ceiling:
     ipv4_segment_size: auto
   path_groups:
-  - name: mpls_path
-    id: 1001
+  - name: mpls_r1_path
+    id: 1002
     local_interfaces:
     - name: Ethernet2
       stun:
         server_profiles:
-        - mpls_path-RR1-Ethernet2
-        - mpls_path-RR2-Ethernet2
+        - mpls_r1_path-RR1-Ethernet2
+        - mpls_r1_path-RR2-Ethernet2
     dynamic_peers:
       enabled: true
     static_peers:
@@ -275,13 +282,22 @@ router_path_selection:
       - 192.15.72.2
     ipsec_profile: CP-PROFILE
   - name: internet_path
-    id: 1002
+    id: 1001
     local_interfaces:
     - name: Ethernet3
       stun:
         server_profiles:
         - internet_path-RR1-Ethernet3
         - internet_path-RR2-Ethernet3
+        - internet_path-RR3-Ethernet3
+        - internet_path-RR4-Ethernet3
+    - name: Ethernet6
+      stun:
+        server_profiles:
+        - internet_path-RR1-Ethernet3
+        - internet_path-RR2-Ethernet3
+        - internet_path-RR3-Ethernet3
+        - internet_path-RR4-Ethernet3
     dynamic_peers:
       enabled: true
     static_peers:
@@ -293,44 +309,43 @@ router_path_selection:
       name: RR2
       ipv4_addresses:
       - 192.16.72.2
+    - router_ip: 10.99.102.3
+      name: RR3
+      ipv4_addresses:
+      - 192.26.76.2
+    - router_ip: 10.99.102.4
+      name: RR4
+      ipv4_addresses:
+      - 192.26.77.2
     ipsec_profile: CP-PROFILE
   - name: mpls_global_path
-    id: 1003
+    id: 1006
     local_interfaces:
     - name: Ethernet4
     - name: Ethernet5
     dynamic_peers:
       enabled: true
     ipsec_profile: CP-PROFILE
-  - name: internet_global_path
-    id: 1004
-    local_interfaces:
-    - name: Ethernet6
-    dynamic_peers:
-      enabled: true
-    ipsec_profile: CP-PROFILE
   load_balance_policies:
   - name: LB-DEFAULT-POLICY-CONTROL-PLANE
     path_groups:
-    - name: internet_global_path
     - name: internet_path
     - name: mpls_global_path
-    - name: mpls_path
+    - name: mpls_r1_path
   - name: LB-DEFAULT-POLICY-DEFAULT
     path_groups:
-    - name: internet_global_path
     - name: internet_path
     - name: mpls_global_path
-    - name: mpls_path
+    - name: mpls_r1_path
 router_traffic_engineering:
   enabled: true
 stun:
   client:
     server_profiles:
-    - name: mpls_path-RR1-Ethernet2
+    - name: mpls_r1_path-RR1-Ethernet2
       ip_address: 192.15.71.2
       ssl_profile: STUN-DTLS
-    - name: mpls_path-RR2-Ethernet2
+    - name: mpls_r1_path-RR2-Ethernet2
       ip_address: 192.15.72.2
       ssl_profile: STUN-DTLS
     - name: internet_path-RR1-Ethernet3
@@ -338,6 +353,12 @@ stun:
       ssl_profile: STUN-DTLS
     - name: internet_path-RR2-Ethernet3
       ip_address: 192.16.72.2
+      ssl_profile: STUN-DTLS
+    - name: internet_path-RR3-Ethernet3
+      ip_address: 192.26.76.2
+      ssl_profile: STUN-DTLS
+    - name: internet_path-RR4-Ethernet3
+      ip_address: 192.26.77.2
       ssl_profile: STUN-DTLS
 application_traffic_recognition:
   application_profiles:
@@ -354,6 +375,8 @@ application_traffic_recognition:
       prefix_values:
       - 10.99.102.1/32
       - 10.99.102.2/32
+      - 10.99.102.3/32
+      - 10.99.102.4/32
 dps_interfaces:
 - name: Dps1
   description: DPS Interface
@@ -401,13 +424,13 @@ metadata:
       - name: Type
         value: wan
       - name: Carrier
-        value: mpls
+        value: mpls_r1
     - interface: Ethernet3
       tags:
       - name: Type
         value: wan
       - name: Carrier
-        value: internet
+        value: comcast
     - interface: Ethernet4
       tags:
       - name: Type
@@ -425,7 +448,7 @@ metadata:
       - name: Type
         value: wan
       - name: Carrier
-        value: internet_global
+        value: ATT
   cv_pathfinder:
     role: transit region
     ssl_profile: STUN-DTLS
@@ -435,10 +458,10 @@ metadata:
     site: TRANSIT1
     interfaces:
     - name: Ethernet2
-      carrier: mpls
-      pathgroup: mpls_path
+      carrier: mpls_r1
+      pathgroup: mpls_r1_path
     - name: Ethernet3
-      carrier: internet
+      carrier: comcast
       pathgroup: internet_path
     - name: Ethernet4
       carrier: mpls_global
@@ -447,8 +470,10 @@ metadata:
       carrier: mpls_global
       pathgroup: mpls_global_path
     - name: Ethernet6
-      carrier: internet_global
-      pathgroup: internet_global_path
+      carrier: ATT
+      pathgroup: internet_path
     pathfinders:
     - vtep_ip: 10.99.102.1
     - vtep_ip: 10.99.102.2
+    - vtep_ip: 10.99.102.3
+    - vtep_ip: 10.99.102.4

@@ -30,7 +30,6 @@ router_bgp:
     type: wan
     update_source: Dps1
     bfd: true
-    password: htm4AZe9mIQOO1uiMuGgYQ==
     send_community: all
     maximum_routes: 0
     remote_as: '65000'
@@ -40,9 +39,24 @@ router_bgp:
       interval: 1000
       min_rx: 1000
       multiplier: 10
+  - name: WAN-RR-OVERLAY-PEERS
+    type: wan
+    update_source: Dps1
+    bfd: true
+    send_community: all
+    maximum_routes: 0
+    remote_as: '65000'
+    ttl_maximum_hops: 1
+    bfd_timers:
+      interval: 1000
+      min_rx: 1000
+      multiplier: 10
+    route_reflector_client: true
   address_family_evpn:
     peer_groups:
     - name: WAN-OVERLAY-PEERS
+      activate: true
+    - name: WAN-RR-OVERLAY-PEERS
       activate: true
     next_hop:
       resolution_disabled: true
@@ -50,9 +64,13 @@ router_bgp:
     peer_groups:
     - name: WAN-OVERLAY-PEERS
       activate: false
+    - name: WAN-RR-OVERLAY-PEERS
+      activate: false
   address_family_ipv4_sr_te:
     peer_groups:
     - name: WAN-OVERLAY-PEERS
+      activate: true
+    - name: WAN-RR-OVERLAY-PEERS
       activate: true
   address_family_link_state:
     peer_groups:
@@ -60,6 +78,8 @@ router_bgp:
       activate: true
       missing_policy:
         direction_out_action: deny
+    - name: WAN-RR-OVERLAY-PEERS
+      activate: true
     path_selection:
       roles:
         consumer: true
@@ -68,11 +88,26 @@ router_bgp:
     peer_groups:
     - name: WAN-OVERLAY-PEERS
       activate: true
+    - name: WAN-RR-OVERLAY-PEERS
+      activate: true
     bgp:
       additional_paths:
         receive: true
         send:
           any: true
+  neighbors:
+  - ip_address: 10.99.102.1
+    peer_group: WAN-RR-OVERLAY-PEERS
+    peer: RR1
+    description: RR1
+  - ip_address: 10.99.102.2
+    peer_group: WAN-RR-OVERLAY-PEERS
+    peer: RR2
+    description: RR2
+  - ip_address: 10.99.102.4
+    peer_group: WAN-RR-OVERLAY-PEERS
+    peer: RR4
+    description: RR4
   vrfs:
   - name: default
     rd: 10.99.101.3:1
@@ -107,13 +142,13 @@ ethernet_interfaces:
   ip_address: 192.25.76.2/24
   shutdown: false
   type: routed
-  description: mpls2
+  description: mpls_r2
 - name: Ethernet3
   peer_type: l3_interface
   ip_address: 192.26.76.2/24
   shutdown: false
   type: routed
-  description: internet2
+  description: BT
 loopback_interfaces:
 - name: Loopback0
   description: Router_ID
@@ -210,20 +245,38 @@ router_path_selection:
   tcp_mss_ceiling:
     ipv4_segment_size: auto
   path_groups:
-  - name: mpls_path
-    id: 1001
   - name: internet_path
+    id: 1001
+    local_interfaces:
+    - name: Ethernet3
+    static_peers:
+    - router_ip: 10.99.102.1
+      name: RR1
+      ipv4_addresses:
+      - 192.16.71.2
+    - router_ip: 10.99.102.2
+      name: RR2
+      ipv4_addresses:
+      - 192.16.72.2
+    - router_ip: 10.99.102.4
+      name: RR4
+      ipv4_addresses:
+      - 192.26.77.2
+    ipsec_profile: CP-PROFILE
+  - name: mpls_r1_path
     id: 1002
-  - name: mpls_path2
+  - name: mpls_r2_path
     id: 1005
     local_interfaces:
     - name: Ethernet2
+    static_peers:
+    - router_ip: 10.99.102.4
+      name: RR4
+      ipv4_addresses:
+      - 192.25.77.2
     ipsec_profile: CP-PROFILE
-  - name: internet_path2
+  - name: mpls_global_path
     id: 1006
-    local_interfaces:
-    - name: Ethernet3
-    ipsec_profile: CP-PROFILE
   - name: LAN_HA
     id: 65535
     flow_assignment: lan
@@ -232,16 +285,16 @@ router_path_selection:
   - name: LB-DEFAULT-POLICY-CONTROL-PLANE
     path_groups:
     - name: internet_path
-    - name: internet_path2
-    - name: mpls_path
-    - name: mpls_path2
+    - name: mpls_global_path
+    - name: mpls_r1_path
+    - name: mpls_r2_path
     - name: LAN_HA
   - name: LB-DEFAULT-POLICY-DEFAULT
     path_groups:
     - name: internet_path
-    - name: internet_path2
-    - name: mpls_path
-    - name: mpls_path2
+    - name: mpls_global_path
+    - name: mpls_r1_path
+    - name: mpls_r2_path
     - name: LAN_HA
 router_traffic_engineering:
   enabled: true
@@ -292,28 +345,31 @@ metadata:
     ssl_profile: STUN-DTLS
     vtep_ip: 10.99.102.3
     region: REGION2
+    site: SITE1_R2_PF
     interfaces:
     - name: Ethernet2
-      carrier: mpls2
-      pathgroup: mpls_path2
+      carrier: mpls_r2
+      pathgroup: mpls_r2_path
       public_ip: 192.25.76.2
     - name: Ethernet3
-      carrier: internet2
-      pathgroup: internet_path2
+      carrier: BT
+      pathgroup: internet_path
       public_ip: 192.26.76.2
     pathgroups:
-    - name: mpls_path
-      carriers:
-      - name: mpls
     - name: internet_path
       carriers:
-      - name: internet
-    - name: mpls_path2
+      - name: comcast
+      - name: BT
+      - name: ATT
+    - name: mpls_r1_path
       carriers:
-      - name: mpls2
-    - name: internet_path2
+      - name: mpls_r1
+    - name: mpls_r2_path
       carriers:
-      - name: internet2
+      - name: mpls_r2
+    - name: mpls_global_path
+      carriers:
+      - name: mpls_global
     regions:
     - name: REGION1
       id: 1
@@ -331,6 +387,8 @@ metadata:
           id: 104
         - name: TRANSIT1
           id: 199
+        - name: SITE1_R1_PF
+          id: 198
     - name: REGION2
       id: 2
       zones:
@@ -347,6 +405,8 @@ metadata:
           id: 204
         - name: TRANSIT2
           id: 299
+        - name: SITE1_R2_PF
+          id: 298
     vrfs:
     - name: default
       vni: 1
@@ -356,11 +416,11 @@ metadata:
         pathgroups:
         - name: internet_path
           preference: preferred
-        - name: internet_path2
+        - name: mpls_global_path
           preference: preferred
-        - name: mpls_path
+        - name: mpls_r1_path
           preference: preferred
-        - name: mpls_path2
+        - name: mpls_r2_path
           preference: preferred
         - name: LAN_HA
           preference: preferred
@@ -371,11 +431,11 @@ metadata:
         pathgroups:
         - name: internet_path
           preference: preferred
-        - name: internet_path2
+        - name: mpls_global_path
           preference: preferred
-        - name: mpls_path
+        - name: mpls_r1_path
           preference: preferred
-        - name: mpls_path2
+        - name: mpls_r2_path
           preference: preferred
         - name: LAN_HA
           preference: preferred
@@ -393,13 +453,13 @@ metadata:
       - name: Type
         value: wan
       - name: Carrier
-        value: mpls2
+        value: mpls_r2
     - interface: Ethernet3
       tags:
       - name: Type
         value: wan
       - name: Carrier
-        value: internet2
+        value: BT
 flow_tracking:
   hardware:
     trackers:

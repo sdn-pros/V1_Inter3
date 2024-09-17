@@ -7,5 +7,6 @@
       ansible.builtin.import_role:
         name: arista.avd.cv_deploy
       vars:
-        cv_server: www.arista.io
+        cv_server: www.cv-prod-us-central1-c.arista.io
         cv_run_change_control: true
+        cv_token: "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJkaWQiOjcyMzEyODYwODY2NTAxODAwMzUsImRzbiI6InBhdGhmaW5kZXItMjEiLCJkc3QiOiJhY2NvdW50IiwiZXhwIjoxNzg4NjE2OTc5LCJpYXQiOjE3MjU2MzEzODIsIm9naSI6NzIzMTI4NjA4NjY1MDE3NTgxMSwib2duIjoicGF0aGZpbmRlci0yMSIsInNpZCI6IjA5NzlkMzAzYTkyZjQyYWNhOWEyYWJlMzg0OTE3ZWMxNjQ5NmY3ZTE4ZjdmZDRhYmY2MmQ2MTcxNjllZDVmMmMtV0w5amNjU29GZTFmMXM2cU9xd1l4NDEtNFpLWUtmTjM1UVo0a01qTyJ9.JwebCIPCQp8XmkBxx_dDUpvl9Y4EG5dGkgPxvAFJm0zRJi8fV5fQtAra76oM47QsazOpYp1tKWSyWSjNfF5mKw"

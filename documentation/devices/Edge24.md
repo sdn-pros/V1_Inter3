@@ -273,21 +273,21 @@ interface Dps1
 
 | Interface | Description | Type | Channel Group | IP Address | VRF |  MTU | Shutdown | ACL In | ACL Out |
 | --------- | ----------- | -----| ------------- | ---------- | ----| ---- | -------- | ------ | ------- |
-| Ethernet2 | mpls2 | routed | - | 192.24.25.1/24 | default | - | False | - | - |
-| Ethernet3 | internet2 | routed | - | 192.24.26.1/24 | default | - | False | - | - |
+| Ethernet2 | mpls_r2 | routed | - | 192.24.25.1/24 | default | - | False | - | - |
+| Ethernet3 | BT | routed | - | 192.24.26.1/24 | default | - | False | - | - |
 
 #### Ethernet Interfaces Device Configuration
 
 ```eos
 !
 interface Ethernet2
-   description mpls2
+   description mpls_r2
    no shutdown
    no switchport
    ip address 192.24.25.1/24
 !
 interface Ethernet3
-   description internet2
+   description BT
    no shutdown
    no switchport
    ip address 192.24.26.1/24
@@ -498,6 +498,8 @@ ASN Notation: asplain
 
 | Neighbor | Remote AS | VRF | Shutdown | Send-community | Maximum-routes | Allowas-in | BFD | RIB Pre-Policy Retain | Route-Reflector Client | Passive | TTL Max Hops |
 | -------- | --------- | --- | -------- | -------------- | -------------- | ---------- | --- | --------------------- | ---------------------- | ------- | ------------ |
+| 10.99.102.1 | Inherited from peer group WAN-OVERLAY-PEERS | default | - | Inherited from peer group WAN-OVERLAY-PEERS | Inherited from peer group WAN-OVERLAY-PEERS | - | Inherited from peer group WAN-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | - | - | Inherited from peer group WAN-OVERLAY-PEERS |
+| 10.99.102.2 | Inherited from peer group WAN-OVERLAY-PEERS | default | - | Inherited from peer group WAN-OVERLAY-PEERS | Inherited from peer group WAN-OVERLAY-PEERS | - | Inherited from peer group WAN-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | - | - | Inherited from peer group WAN-OVERLAY-PEERS |
 | 10.99.102.3 | Inherited from peer group WAN-OVERLAY-PEERS | default | - | Inherited from peer group WAN-OVERLAY-PEERS | Inherited from peer group WAN-OVERLAY-PEERS | - | Inherited from peer group WAN-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | - | - | Inherited from peer group WAN-OVERLAY-PEERS |
 | 10.99.102.4 | Inherited from peer group WAN-OVERLAY-PEERS | default | - | Inherited from peer group WAN-OVERLAY-PEERS | Inherited from peer group WAN-OVERLAY-PEERS | - | Inherited from peer group WAN-OVERLAY-PEERS(interval: 1000, min_rx: 1000, multiplier: 10) | - | - | - | Inherited from peer group WAN-OVERLAY-PEERS |
 
@@ -559,9 +561,12 @@ router bgp 65000
    neighbor WAN-OVERLAY-PEERS bfd
    neighbor WAN-OVERLAY-PEERS bfd interval 1000 min-rx 1000 multiplier 10
    neighbor WAN-OVERLAY-PEERS ttl maximum-hops 1
-   neighbor WAN-OVERLAY-PEERS password 7 <removed>
    neighbor WAN-OVERLAY-PEERS send-community
    neighbor WAN-OVERLAY-PEERS maximum-routes 0
+   neighbor 10.99.102.1 peer group WAN-OVERLAY-PEERS
+   neighbor 10.99.102.1 description RR1
+   neighbor 10.99.102.2 peer group WAN-OVERLAY-PEERS
+   neighbor 10.99.102.2 description RR2
    neighbor 10.99.102.3 peer group WAN-OVERLAY-PEERS
    neighbor 10.99.102.3 description RR3
    neighbor 10.99.102.4 peer group WAN-OVERLAY-PEERS
@@ -736,7 +741,7 @@ vrf instance MGMT
 
 | Name | Prefixes |
 | ---- | -------- |
-| PFX-PATHFINDERS | 10.99.102.3/32<br>10.99.102.4/32 |
+| PFX-PATHFINDERS | 10.99.102.1/32<br>10.99.102.2/32<br>10.99.102.3/32<br>10.99.102.4/32 |
 
 ### Router Application-Traffic-Recognition Device Configuration
 
@@ -751,7 +756,7 @@ application traffic recognition
       application APP-CONTROL-PLANE
    !
    field-set ipv4 prefix PFX-PATHFINDERS
-      10.99.102.3/32 10.99.102.4/32
+      10.99.102.1/32 10.99.102.2/32 10.99.102.3/32 10.99.102.4/32
 ```
 
 ### Router Path-selection
@@ -764,18 +769,18 @@ application traffic recognition
 
 #### Path Groups
 
-##### Path Group internet_path2
+##### Path Group internet_path
 
 | Setting | Value |
 | ------  | ----- |
-| Path Group ID | 1006 |
+| Path Group ID | 1001 |
 | IPSec profile | CP-PROFILE |
 
 ###### Local Interfaces
 
 | Interface name | Public address | STUN server profile(s) |
 | -------------- | -------------- | ---------------------- |
-| Ethernet3 | - | internet_path2-RR3-Ethernet3<br>internet_path2-RR4-Ethernet3 |
+| Ethernet3 | - | internet_path-RR1-Ethernet3<br>internet_path-RR2-Ethernet3<br>internet_path-RR3-Ethernet3<br>internet_path-RR4-Ethernet3 |
 
 ###### Dynamic Peers Settings
 
@@ -788,10 +793,12 @@ application traffic recognition
 
 | Router IP | Name | IPv4 address(es) |
 | --------- | ---- | ---------------- |
+| 10.99.102.1 | RR1 | 192.16.71.2 |
+| 10.99.102.2 | RR2 | 192.16.72.2 |
 | 10.99.102.3 | RR3 | 192.26.76.2 |
 | 10.99.102.4 | RR4 | 192.26.77.2 |
 
-##### Path Group mpls_path2
+##### Path Group mpls_r2_path
 
 | Setting | Value |
 | ------  | ----- |
@@ -802,7 +809,7 @@ application traffic recognition
 
 | Interface name | Public address | STUN server profile(s) |
 | -------------- | -------------- | ---------------------- |
-| Ethernet2 | - | mpls_path2-RR3-Ethernet2<br>mpls_path2-RR4-Ethernet2 |
+| Ethernet2 | - | mpls_r2_path-RR3-Ethernet2<br>mpls_r2_path-RR4-Ethernet2 |
 
 ###### Dynamic Peers Settings
 
@@ -822,8 +829,8 @@ application traffic recognition
 
 | Policy Name | Jitter (ms) | Latency (ms) | Loss Rate (%) | Path Groups (priority) | Lowest Hop Count |
 | ----------- | ----------- | ------------ | ------------- | ---------------------- | ---------------- |
-| LB-DEFAULT-POLICY-CONTROL-PLANE | - | - | - | internet_path2 (1)<br>mpls_path2 (1) | False |
-| LB-DEFAULT-POLICY-DEFAULT | - | - | - | internet_path2 (1)<br>mpls_path2 (1) | False |
+| LB-DEFAULT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
+| LB-DEFAULT-POLICY-DEFAULT | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
 
 #### Router Path-selection Device Configuration
 
@@ -832,13 +839,21 @@ application traffic recognition
 router path-selection
    tcp mss ceiling ipv4 ingress
    !
-   path-group internet_path2 id 1006
+   path-group internet_path id 1001
       ipsec profile CP-PROFILE
       !
       local interface Ethernet3
-         stun server-profile internet_path2-RR3-Ethernet3 internet_path2-RR4-Ethernet3
+         stun server-profile internet_path-RR1-Ethernet3 internet_path-RR2-Ethernet3 internet_path-RR3-Ethernet3 internet_path-RR4-Ethernet3
       !
       peer dynamic
+      !
+      peer static router-ip 10.99.102.1
+         name RR1
+         ipv4 address 192.16.71.2
+      !
+      peer static router-ip 10.99.102.2
+         name RR2
+         ipv4 address 192.16.72.2
       !
       peer static router-ip 10.99.102.3
          name RR3
@@ -848,11 +863,11 @@ router path-selection
          name RR4
          ipv4 address 192.26.77.2
    !
-   path-group mpls_path2 id 1005
+   path-group mpls_r2_path id 1005
       ipsec profile CP-PROFILE
       !
       local interface Ethernet2
-         stun server-profile mpls_path2-RR3-Ethernet2 mpls_path2-RR4-Ethernet2
+         stun server-profile mpls_r2_path-RR3-Ethernet2 mpls_r2_path-RR4-Ethernet2
       !
       peer dynamic
       !
@@ -865,12 +880,12 @@ router path-selection
          ipv4 address 192.25.77.2
    !
    load-balance policy LB-DEFAULT-POLICY-CONTROL-PLANE
-      path-group internet_path2
-      path-group mpls_path2
+      path-group internet_path
+      path-group mpls_r2_path
    !
    load-balance policy LB-DEFAULT-POLICY-DEFAULT
-      path-group internet_path2
-      path-group mpls_path2
+      path-group internet_path
+      path-group mpls_r2_path
 ```
 
 ## STUN
@@ -881,10 +896,12 @@ router path-selection
 
 | Server Profile | IP address | SSL Profile | Port |
 | -------------- | ---------- | ----------- | ---- |
-| internet_path2-RR3-Ethernet3 | 192.26.76.2 | STUN-DTLS | 3478 |
-| internet_path2-RR4-Ethernet3 | 192.26.77.2 | STUN-DTLS | 3478 |
-| mpls_path2-RR3-Ethernet2 | 192.25.76.2 | STUN-DTLS | 3478 |
-| mpls_path2-RR4-Ethernet2 | 192.25.77.2 | STUN-DTLS | 3478 |
+| internet_path-RR1-Ethernet3 | 192.16.71.2 | STUN-DTLS | 3478 |
+| internet_path-RR2-Ethernet3 | 192.16.72.2 | STUN-DTLS | 3478 |
+| internet_path-RR3-Ethernet3 | 192.26.76.2 | STUN-DTLS | 3478 |
+| internet_path-RR4-Ethernet3 | 192.26.77.2 | STUN-DTLS | 3478 |
+| mpls_r2_path-RR3-Ethernet2 | 192.25.76.2 | STUN-DTLS | 3478 |
+| mpls_r2_path-RR4-Ethernet2 | 192.25.77.2 | STUN-DTLS | 3478 |
 
 ### STUN Device Configuration
 
@@ -892,16 +909,22 @@ router path-selection
 !
 stun
    client
-      server-profile internet_path2-RR3-Ethernet3
+      server-profile internet_path-RR1-Ethernet3
+         ip address 192.16.71.2
+         ssl profile STUN-DTLS
+      server-profile internet_path-RR2-Ethernet3
+         ip address 192.16.72.2
+         ssl profile STUN-DTLS
+      server-profile internet_path-RR3-Ethernet3
          ip address 192.26.76.2
          ssl profile STUN-DTLS
-      server-profile internet_path2-RR4-Ethernet3
+      server-profile internet_path-RR4-Ethernet3
          ip address 192.26.77.2
          ssl profile STUN-DTLS
-      server-profile mpls_path2-RR3-Ethernet2
+      server-profile mpls_r2_path-RR3-Ethernet2
          ip address 192.25.76.2
          ssl profile STUN-DTLS
-      server-profile mpls_path2-RR4-Ethernet2
+      server-profile mpls_r2_path-RR4-Ethernet2
          ip address 192.25.77.2
          ssl profile STUN-DTLS
 ```

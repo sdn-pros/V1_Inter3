@@ -16,10 +16,10 @@ wan_router:
       l3_interfaces:
         - name: Ethernet2
           ip_address: 192.25.53.2/24
-          wan_carrier: mpls2
+          wan_carrier: mpls_r2
         - name: Ethernet3
           ip_address: 192.26.53.2/24
-          wan_carrier: internet2
+          wan_carrier: BT
         - name: Ethernet4
           ip_address: 192.53.83.1/24
           wan_carrier: mpls_global
@@ -28,17 +28,17 @@ wan_router:
           wan_carrier: mpls_global
         - name: Ethernet6
           ip_address: 192.53.75.1/24
-          wan_carrier: internet_global
+          wan_carrier: ATT
     - name: P21
       id: 72
       cv_pathfinder_site: TRANSIT2
       l3_interfaces:
         - name: Ethernet2
           ip_address: 192.26.54.2/24
-          wan_carrier: internet2
+          wan_carrier: BT
         - name: Ethernet3
           ip_address: 192.25.54.2/24
-          wan_carrier: mpls2
+          wan_carrier: mpls_r2
         - name: Ethernet4
           ip_address: 192.54.83.1/24
           wan_carrier: mpls_global
@@ -47,4 +47,4 @@ wan_router:
           wan_carrier: mpls_global
         - name: Ethernet6
           ip_address: 192.54.75.1/24
-          wan_carrier: internet_global
+          wan_carrier: ATT
