@@ -137,7 +137,7 @@ management security
 
 | Tracker Name | Record Export On Inactive Timeout | Record Export On Interval | Number of Exporters | Applied On |
 | ------------ | --------------------------------- | ------------------------- | ------------------- | ---------- |
-| FLOW-TRACKER | 70000 | 300000 | 1 | Dps1 |
+| FLOW-TRACKER | 70000 | 300000 | 1 | Dps1<br>Ethernet4<br>Ethernet5<br>Ethernet3 |
 
 ##### Exporters Summary
 
@@ -266,6 +266,7 @@ interface Dps1
 
 | Interface | Description | Mode | VLANs | Native VLAN | Trunk Group | Channel-Group |
 | --------- | ----------- | ---- | ----- | ----------- | ----------- | ------------- |
+| Ethernet3 |  - | access | - | - | - | - |
 
 *Inherited from Port-Channel Interface
 
@@ -280,16 +281,22 @@ interface Dps1
 
 ```eos
 !
+interface Ethernet3
+   switchport
+   flow tracker hardware FLOW-TRACKER
+!
 interface Ethernet4
    description mpls_r2
    no shutdown
    no switchport
+   flow tracker hardware FLOW-TRACKER
    ip address 192.20.25.1/24
 !
 interface Ethernet5
    description BT
    no shutdown
    no switchport
+   flow tracker hardware FLOW-TRACKER
    ip address 192.20.26.1/24
 ```
 
@@ -332,7 +339,8 @@ interface Loopback0
 
 | VRF | VNI | Multicast Group |
 | ---- | --- | --------------- |
-| default | 1 | - |
+| default | 101 | - |
+| VRF_A | 102 | - |
 
 #### VXLAN Interface Device Configuration
 
@@ -342,7 +350,8 @@ interface Vxlan1
    description Edge20_VTEP
    vxlan source-interface Dps1
    vxlan udp-port 4789
-   vxlan vrf default vni 1
+   vxlan vrf default vni 101
+   vxlan vrf VRF_A vni 102
 ```
 
 ## Routing
@@ -364,6 +373,7 @@ service routing protocols model multi-agent
 | --- | --------------- |
 | default | True |
 | MGMT | False |
+| VRF_A | True |
 
 #### IP Routing Device Configuration
 
@@ -371,6 +381,7 @@ service routing protocols model multi-agent
 !
 ip routing
 no ip routing vrf MGMT
+ip routing vrf VRF_A
 ```
 
 ### IPv6 Routing
@@ -381,6 +392,7 @@ no ip routing vrf MGMT
 | --- | --------------- |
 | default | False |
 | MGMT | false |
+| VRF_A | false |
 
 ### Router Adaptive Virtual Topology
 
@@ -398,17 +410,28 @@ Topology role: edge
 
 | Profile name | Load balance policy | Internet exit policy |
 | ------------ | ------------------- | -------------------- |
-| DEFAULT-POLICY-CONTROL-PLANE | LB-DEFAULT-POLICY-CONTROL-PLANE | - |
-| DEFAULT-POLICY-DEFAULT | LB-DEFAULT-POLICY-DEFAULT | - |
+| DEFAULT-AVT-POLICY-CONTROL-PLANE | LB-DEFAULT-AVT-POLICY-CONTROL-PLANE | - |
+| DEFAULT-AVT-POLICY-DEFAULT | LB-DEFAULT-AVT-POLICY-DEFAULT | - |
+| PROD-AVT-POLICY-APP_SSH_PROFILE | LB-PROD-AVT-POLICY-APP_SSH_PROFILE | - |
+| PROD-AVT-POLICY-APP_TELNET_PROFILE | LB-PROD-AVT-POLICY-APP_TELNET_PROFILE | - |
+| PROD-AVT-POLICY-DEFAULT | LB-PROD-AVT-POLICY-DEFAULT | - |
 
 #### AVT Policies
 
-##### AVT policy DEFAULT-POLICY-WITH-CP
+##### AVT policy DEFAULT-AVT-POLICY-WITH-CP
 
 | Application profile | AVT Profile | Traffic Class | DSCP |
 | ------------------- | ----------- | ------------- | ---- |
-| APP-PROFILE-CONTROL-PLANE | DEFAULT-POLICY-CONTROL-PLANE | - | - |
-| default | DEFAULT-POLICY-DEFAULT | - | - |
+| APP-PROFILE-CONTROL-PLANE | DEFAULT-AVT-POLICY-CONTROL-PLANE | - | - |
+| default | DEFAULT-AVT-POLICY-DEFAULT | - | - |
+
+##### AVT policy PROD-AVT-POLICY
+
+| Application profile | AVT Profile | Traffic Class | DSCP |
+| ------------------- | ----------- | ------------- | ---- |
+| APP_TELNET_PROFILE | PROD-AVT-POLICY-APP_TELNET_PROFILE | - | - |
+| APP_SSH_PROFILE | PROD-AVT-POLICY-APP_SSH_PROFILE | - | - |
+| default | PROD-AVT-POLICY-DEFAULT | - | - |
 
 #### VRFs configuration
 
@@ -416,12 +439,24 @@ Topology role: edge
 
 | AVT policy |
 | ---------- |
-| DEFAULT-POLICY-WITH-CP |
+| DEFAULT-AVT-POLICY-WITH-CP |
 
 | AVT Profile | AVT ID |
 | ----------- | ------ |
-| DEFAULT-POLICY-DEFAULT | 1 |
-| DEFAULT-POLICY-CONTROL-PLANE | 254 |
+| DEFAULT-AVT-POLICY-DEFAULT | 1 |
+| DEFAULT-AVT-POLICY-CONTROL-PLANE | 254 |
+
+##### VRF VRF_A
+
+| AVT policy |
+| ---------- |
+| PROD-AVT-POLICY |
+
+| AVT Profile | AVT ID |
+| ----------- | ------ |
+| PROD-AVT-POLICY-DEFAULT | 1 |
+| PROD-AVT-POLICY-APP_TELNET_PROFILE | 2 |
+| PROD-AVT-POLICY-APP_SSH_PROFILE | 3 |
 
 #### Router Adaptive Virtual Topology Configuration
 
@@ -433,24 +468,50 @@ router adaptive-virtual-topology
    zone REGION2-ZONE id 1
    site SITE21 id 201
    !
-   policy DEFAULT-POLICY-WITH-CP
+   policy DEFAULT-AVT-POLICY-WITH-CP
       !
       match application-profile APP-PROFILE-CONTROL-PLANE
-         avt profile DEFAULT-POLICY-CONTROL-PLANE
+         avt profile DEFAULT-AVT-POLICY-CONTROL-PLANE
       !
       match application-profile default
-         avt profile DEFAULT-POLICY-DEFAULT
+         avt profile DEFAULT-AVT-POLICY-DEFAULT
    !
-   profile DEFAULT-POLICY-CONTROL-PLANE
-      path-selection load-balance LB-DEFAULT-POLICY-CONTROL-PLANE
+   policy PROD-AVT-POLICY
+      !
+      match application-profile APP_TELNET_PROFILE
+         avt profile PROD-AVT-POLICY-APP_TELNET_PROFILE
+      !
+      match application-profile APP_SSH_PROFILE
+         avt profile PROD-AVT-POLICY-APP_SSH_PROFILE
+      !
+      match application-profile default
+         avt profile PROD-AVT-POLICY-DEFAULT
    !
-   profile DEFAULT-POLICY-DEFAULT
-      path-selection load-balance LB-DEFAULT-POLICY-DEFAULT
+   profile DEFAULT-AVT-POLICY-CONTROL-PLANE
+      path-selection load-balance LB-DEFAULT-AVT-POLICY-CONTROL-PLANE
+   !
+   profile DEFAULT-AVT-POLICY-DEFAULT
+      path-selection load-balance LB-DEFAULT-AVT-POLICY-DEFAULT
+   !
+   profile PROD-AVT-POLICY-APP_SSH_PROFILE
+      path-selection load-balance LB-PROD-AVT-POLICY-APP_SSH_PROFILE
+   !
+   profile PROD-AVT-POLICY-APP_TELNET_PROFILE
+      path-selection load-balance LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
+   !
+   profile PROD-AVT-POLICY-DEFAULT
+      path-selection load-balance LB-PROD-AVT-POLICY-DEFAULT
    !
    vrf default
-      avt policy DEFAULT-POLICY-WITH-CP
-      avt profile DEFAULT-POLICY-DEFAULT id 1
-      avt profile DEFAULT-POLICY-CONTROL-PLANE id 254
+      avt policy DEFAULT-AVT-POLICY-WITH-CP
+      avt profile DEFAULT-AVT-POLICY-DEFAULT id 1
+      avt profile DEFAULT-AVT-POLICY-CONTROL-PLANE id 254
+   !
+   vrf VRF_A
+      avt policy PROD-AVT-POLICY
+      avt profile PROD-AVT-POLICY-DEFAULT id 1
+      avt profile PROD-AVT-POLICY-APP_TELNET_PROFILE id 2
+      avt profile PROD-AVT-POLICY-APP_SSH_PROFILE id 3
 ```
 
 ### Router Traffic-Engineering
@@ -545,7 +606,8 @@ ASN Notation: asplain
 
 | VRF | Route-Distinguisher | Redistribute |
 | --- | ------------------- | ------------ |
-| default | 10.99.201.21:1 | - |
+| default | 10.99.201.21:101 | - |
+| VRF_A | 10.99.201.21:102 | connected |
 
 #### Router BGP Device Configuration
 
@@ -594,10 +656,17 @@ router bgp 65000
       neighbor WAN-OVERLAY-PEERS activate
    !
    vrf default
-      rd 10.99.201.21:1
-      route-target import evpn 65000:1
-      route-target export evpn 65000:1
+      rd 10.99.201.21:101
+      route-target import evpn 65000:101
+      route-target export evpn 65000:101
       route-target export evpn route-map RM-EVPN-EXPORT-VRF-DEFAULT
+   !
+   vrf VRF_A
+      rd 10.99.201.21:102
+      route-target import evpn 65000:102
+      route-target export evpn 65000:102
+      router-id 10.99.201.21
+      redistribute connected
 ```
 
 ## BFD
@@ -709,12 +778,15 @@ ip extcommunity-list ECL-EVPN-SOO permit soo 10.99.201.21:201
 | VRF Name | IP Routing |
 | -------- | ---------- |
 | MGMT | disabled |
+| VRF_A | enabled |
 
 ### VRF Instances Device Configuration
 
 ```eos
 !
 vrf instance MGMT
+!
+vrf instance VRF_A
 ```
 
 ## Application Traffic Recognition
@@ -726,6 +798,7 @@ vrf instance MGMT
 | Name | Source Prefix | Destination Prefix | Protocols | Protocol Ranges | TCP Source Port Set | TCP Destination Port Set | UDP Source Port Set | UDP Destination Port Set | DSCP |
 | ---- | ------------- | ------------------ | --------- | --------------- | ------------------- | ------------------------ | ------------------- | ------------------------ | ---- |
 | APP-CONTROL-PLANE | - | PFX-PATHFINDERS | - | - | - | - | - | - | - |
+| APP_1_SSH | - | - | tcp | - | - | APP_1_SSH_PORTS | - | - | - |
 
 ### Application Profiles
 
@@ -735,7 +808,25 @@ vrf instance MGMT
 | ---- | ---- | ------- |
 | application | APP-CONTROL-PLANE | - |
 
+#### Application Profile Name APP_SSH_PROFILE
+
+| Type | Name | Service |
+| ---- | ---- | ------- |
+| application | APP_1_SSH | - |
+
+#### Application Profile Name APP_TELNET_PROFILE
+
+| Type | Name | Service |
+| ---- | ---- | ------- |
+| application | telnet | - |
+
 ### Field Sets
+
+#### L4 Port Sets
+
+| Name | Ports |
+| ---- | ----- |
+| APP_1_SSH_PORTS | 22 |
 
 #### IPv4 Prefix Sets
 
@@ -752,11 +843,23 @@ application traffic recognition
    application ipv4 APP-CONTROL-PLANE
       destination prefix field-set PFX-PATHFINDERS
    !
+   application ipv4 APP_1_SSH
+      protocol tcp destination port field-set APP_1_SSH_PORTS
+   !
    application-profile APP-PROFILE-CONTROL-PLANE
       application APP-CONTROL-PLANE
    !
+   application-profile APP_SSH_PROFILE
+      application APP_1_SSH
+   !
+   application-profile APP_TELNET_PROFILE
+      application telnet
+   !
    field-set ipv4 prefix PFX-PATHFINDERS
       10.99.102.1/32 10.99.102.2/32 10.99.102.3/32 10.99.102.4/32
+   !
+   field-set l4-port APP_1_SSH_PORTS
+      22
 ```
 
 ### Router Path-selection
@@ -829,8 +932,11 @@ application traffic recognition
 
 | Policy Name | Jitter (ms) | Latency (ms) | Loss Rate (%) | Path Groups (priority) | Lowest Hop Count |
 | ----------- | ----------- | ------------ | ------------- | ---------------------- | ---------------- |
-| LB-DEFAULT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
-| LB-DEFAULT-POLICY-DEFAULT | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
+| LB-DEFAULT-AVT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
+| LB-DEFAULT-AVT-POLICY-DEFAULT | - | - | - | internet_path (1) | False |
+| LB-PROD-AVT-POLICY-APP_SSH_PROFILE | - | - | - | internet_path (1)<br>mpls_r2_path (2) | False |
+| LB-PROD-AVT-POLICY-APP_TELNET_PROFILE | - | - | - | internet_path (1)<br>mpls_r2_path (2) | False |
+| LB-PROD-AVT-POLICY-DEFAULT | - | 2 | - | internet_path (1)<br>mpls_r2_path (1) | False |
 
 #### Router Path-selection Device Configuration
 
@@ -879,11 +985,23 @@ router path-selection
          name RR4
          ipv4 address 192.25.77.2
    !
-   load-balance policy LB-DEFAULT-POLICY-CONTROL-PLANE
+   load-balance policy LB-DEFAULT-AVT-POLICY-CONTROL-PLANE
       path-group internet_path
       path-group mpls_r2_path
    !
-   load-balance policy LB-DEFAULT-POLICY-DEFAULT
+   load-balance policy LB-DEFAULT-AVT-POLICY-DEFAULT
+      path-group internet_path
+   !
+   load-balance policy LB-PROD-AVT-POLICY-APP_SSH_PROFILE
+      path-group internet_path
+      path-group mpls_r2_path priority 2
+   !
+   load-balance policy LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
+      path-group internet_path
+      path-group mpls_r2_path priority 2
+   !
+   load-balance policy LB-PROD-AVT-POLICY-DEFAULT
+      latency 2
       path-group internet_path
       path-group mpls_r2_path
 ```

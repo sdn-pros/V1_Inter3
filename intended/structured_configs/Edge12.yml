@@ -120,12 +120,19 @@ ethernet_interfaces:
   shutdown: false
   type: routed
   description: mpls_r1
+  flow_tracker:
+    hardware: FLOW-TRACKER
 - name: Ethernet3
   peer_type: l3_interface
   ip_address: 192.12.16.1/24
   shutdown: false
   type: routed
   description: comcast
+  flow_tracker:
+    hardware: FLOW-TRACKER
+- name: Ethernet1
+  flow_tracker:
+    hardware: FLOW-TRACKER
 loopback_interfaces:
 - name: Loopback0
   description: Router_ID
@@ -232,36 +239,48 @@ router_adaptive_virtual_topology:
     name: SITE12
     id: 102
   profiles:
+  - name: DEFAULT-AVT-POLICY-CONTROL-PLANE
+    load_balance_policy: LB-DEFAULT-AVT-POLICY-CONTROL-PLANE
   - name: DEFAULT-AVT-POLICY-DEFAULT
     load_balance_policy: LB-DEFAULT-AVT-POLICY-DEFAULT
-  - name: DEFAULT-POLICY-CONTROL-PLANE
-    load_balance_policy: LB-DEFAULT-POLICY-CONTROL-PLANE
-  - name: DEFAULT-POLICY-DEFAULT
-    load_balance_policy: LB-DEFAULT-POLICY-DEFAULT
+  - name: PROD-AVT-POLICY-APP_TELNET_PROFILE
+    load_balance_policy: LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
+  - name: PROD-AVT-POLICY-APP_SSH_PROFILE
+    load_balance_policy: LB-PROD-AVT-POLICY-APP_SSH_PROFILE
+  - name: PROD-AVT-POLICY-DEFAULT
+    load_balance_policy: LB-PROD-AVT-POLICY-DEFAULT
   vrfs:
-  - name: VRF_A
-    policy: DEFAULT-AVT-POLICY
+  - name: default
+    policy: DEFAULT-AVT-POLICY-WITH-CP
     profiles:
+    - name: DEFAULT-AVT-POLICY-CONTROL-PLANE
+      id: 254
     - name: DEFAULT-AVT-POLICY-DEFAULT
       id: 1
-  - name: default
-    policy: DEFAULT-POLICY-WITH-CP
+  - name: VRF_A
+    policy: PROD-AVT-POLICY
     profiles:
-    - name: DEFAULT-POLICY-CONTROL-PLANE
-      id: 254
-    - name: DEFAULT-POLICY-DEFAULT
+    - name: PROD-AVT-POLICY-APP_TELNET_PROFILE
+      id: 2
+    - name: PROD-AVT-POLICY-APP_SSH_PROFILE
+      id: 3
+    - name: PROD-AVT-POLICY-DEFAULT
       id: 1
   policies:
-  - name: DEFAULT-AVT-POLICY
-    matches:
-    - application_profile: default
-      avt_profile: DEFAULT-AVT-POLICY-DEFAULT
-  - name: DEFAULT-POLICY-WITH-CP
+  - name: DEFAULT-AVT-POLICY-WITH-CP
     matches:
     - application_profile: APP-PROFILE-CONTROL-PLANE
-      avt_profile: DEFAULT-POLICY-CONTROL-PLANE
+      avt_profile: DEFAULT-AVT-POLICY-CONTROL-PLANE
     - application_profile: default
-      avt_profile: DEFAULT-POLICY-DEFAULT
+      avt_profile: DEFAULT-AVT-POLICY-DEFAULT
+  - name: PROD-AVT-POLICY
+    matches:
+    - application_profile: APP_TELNET_PROFILE
+      avt_profile: PROD-AVT-POLICY-APP_TELNET_PROFILE
+    - application_profile: APP_SSH_PROFILE
+      avt_profile: PROD-AVT-POLICY-APP_SSH_PROFILE
+    - application_profile: default
+      avt_profile: PROD-AVT-POLICY-DEFAULT
 router_bfd:
   multihop:
     interval: 300
@@ -322,18 +341,28 @@ router_path_selection:
       - 192.26.77.2
     ipsec_profile: CP-PROFILE
   load_balance_policies:
+  - name: LB-DEFAULT-AVT-POLICY-CONTROL-PLANE
+    path_groups:
+    - name: internet_path
+    - name: mpls_r1_path
   - name: LB-DEFAULT-AVT-POLICY-DEFAULT
     path_groups:
-    - name: mpls_r1_path
     - name: internet_path
-  - name: LB-DEFAULT-POLICY-CONTROL-PLANE
+  - name: LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
     path_groups:
     - name: internet_path
     - name: mpls_r1_path
-  - name: LB-DEFAULT-POLICY-DEFAULT
+      priority: 2
+  - name: LB-PROD-AVT-POLICY-APP_SSH_PROFILE
     path_groups:
     - name: internet_path
     - name: mpls_r1_path
+      priority: 2
+  - name: LB-PROD-AVT-POLICY-DEFAULT
+    path_groups:
+    - name: internet_path
+    - name: mpls_r1_path
+    latency: 2
 router_traffic_engineering:
   enabled: true
 stun:
@@ -359,14 +388,28 @@ stun:
       ssl_profile: STUN-DTLS
 application_traffic_recognition:
   application_profiles:
+  - name: APP_TELNET_PROFILE
+    applications:
+    - name: telnet
+  - name: APP_SSH_PROFILE
+    applications:
+    - name: APP_1_SSH
   - name: APP-PROFILE-CONTROL-PLANE
     applications:
     - name: APP-CONTROL-PLANE
   applications:
     ipv4_applications:
+    - name: APP_1_SSH
+      protocols:
+      - tcp
+      tcp_dest_port_set_name: APP_1_SSH_PORTS
     - name: APP-CONTROL-PLANE
       dest_prefix_set_name: PFX-PATHFINDERS
   field_sets:
+    l4_ports:
+    - name: APP_1_SSH_PORTS
+      port_values:
+      - '22'
     ipv4_prefixes:
     - name: PFX-PATHFINDERS
       prefix_values:
@@ -389,9 +432,9 @@ vxlan_interface:
       source_interface: Dps1
       vrfs:
       - name: default
-        vni: 1
-      - name: VRF_A
         vni: 101
+      - name: VRF_A
+        vni: 102
 flow_tracking:
   hardware:
     trackers:

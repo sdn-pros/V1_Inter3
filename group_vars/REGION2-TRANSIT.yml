@@ -17,18 +17,28 @@ wan_router:
         - name: Ethernet2
           ip_address: 192.25.53.2/24
           wan_carrier: mpls_r2
+          flow_tracking:
+            enabled: true
         - name: Ethernet3
           ip_address: 192.26.53.2/24
           wan_carrier: BT
+          flow_tracking:
+            enabled: true
         - name: Ethernet4
           ip_address: 192.53.83.1/24
           wan_carrier: mpls_global
+          flow_tracking:
+            enabled: true
         - name: Ethernet5
           ip_address: 192.53.84.1/24
           wan_carrier: mpls_global
+          flow_tracking:
+            enabled: true
         - name: Ethernet6
           ip_address: 192.53.75.1/24
           wan_carrier: ATT
+          flow_tracking:
+            enabled: true
     - name: P21
       id: 72
       cv_pathfinder_site: TRANSIT2
@@ -36,15 +46,25 @@ wan_router:
         - name: Ethernet2
           ip_address: 192.26.54.2/24
           wan_carrier: BT
+          flow_tracking:
+            enabled: true
         - name: Ethernet3
           ip_address: 192.25.54.2/24
           wan_carrier: mpls_r2
+          flow_tracking:
+            enabled: true
         - name: Ethernet4
           ip_address: 192.54.83.1/24
           wan_carrier: mpls_global
+          flow_tracking:
+            enabled: true
         - name: Ethernet5
           ip_address: 192.54.84.1/24
           wan_carrier: mpls_global
+          flow_tracking:
+            enabled: true
         - name: Ethernet6
           ip_address: 192.54.75.1/24
           wan_carrier: ATT
+          flow_tracking:
+            enabled: true
