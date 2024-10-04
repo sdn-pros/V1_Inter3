@@ -938,8 +938,8 @@ application traffic recognition
 | ----------- | ----------- | ------------ | ------------- | ---------------------- | ---------------- |
 | LB-DEFAULT-AVT-POLICY-CONTROL-PLANE | - | - | - | internet_path (1)<br>mpls_r2_path (1) | False |
 | LB-DEFAULT-AVT-POLICY-DEFAULT | - | - | - | internet_path (1) | False |
-| LB-PROD-AVT-POLICY-APP_SSH_PROFILE | - | - | - | internet_path (1)<br>mpls_r2_path (2) | False |
-| LB-PROD-AVT-POLICY-APP_TELNET_PROFILE | - | - | - | internet_path (1)<br>mpls_r2_path (2) | False |
+| LB-PROD-AVT-POLICY-APP_SSH_PROFILE | - | - | - | internet_path (1) | False |
+| LB-PROD-AVT-POLICY-APP_TELNET_PROFILE | - | - | - | mpls_r2_path (1) | False |
 | LB-PROD-AVT-POLICY-DEFAULT | - | 2 | - | internet_path (1)<br>mpls_r2_path (1) | False |
 
 #### Router Path-selection Device Configuration
@@ -998,11 +998,9 @@ router path-selection
    !
    load-balance policy LB-PROD-AVT-POLICY-APP_SSH_PROFILE
       path-group internet_path
-      path-group mpls_r2_path priority 2
    !
    load-balance policy LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
-      path-group internet_path
-      path-group mpls_r2_path priority 2
+      path-group mpls_r2_path
    !
    load-balance policy LB-PROD-AVT-POLICY-DEFAULT
       latency 2

@@ -29,17 +29,13 @@ wan_virtual_topologies:
         - application_profile: APP_TELNET_PROFILE
           id: 2
           path_groups:
-            - names: [internet_path]
-              preference: preferred
             - names: [mpls_global_path, mpls_r1_path, mpls_r2_path]
-              preference: alternate
+              preference: preferred
         - application_profile: APP_SSH_PROFILE
           id: 3
           path_groups:
             - names: [internet_path]
               preference: preferred
-            - names: [mpls_global_path, mpls_r1_path, mpls_r2_path]
-              preference: alternate
       default_virtual_topology:
         constraints:
           latency: 2

@@ -335,23 +335,13 @@ router_path_selection:
     - name: LAN_HA
   - name: LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
     path_groups:
-    - name: internet_path
     - name: mpls_global_path
-      priority: 2
     - name: mpls_r1_path
-      priority: 2
     - name: mpls_r2_path
-      priority: 2
     - name: LAN_HA
   - name: LB-PROD-AVT-POLICY-APP_SSH_PROFILE
     path_groups:
     - name: internet_path
-    - name: mpls_global_path
-      priority: 2
-    - name: mpls_r1_path
-      priority: 2
-    - name: mpls_r2_path
-      priority: 2
     - name: LAN_HA
   - name: LB-PROD-AVT-POLICY-DEFAULT
     path_groups:
@@ -526,14 +516,12 @@ metadata:
       - id: 2
         name: PROD-AVT-POLICY-APP_TELNET_PROFILE
         pathgroups:
-        - name: internet_path
-          preference: preferred
         - name: mpls_global_path
-          preference: alternate
+          preference: preferred
         - name: mpls_r1_path
-          preference: alternate
+          preference: preferred
         - name: mpls_r2_path
-          preference: alternate
+          preference: preferred
         - name: LAN_HA
           preference: preferred
         application_profiles:
@@ -543,12 +531,6 @@ metadata:
         pathgroups:
         - name: internet_path
           preference: preferred
-        - name: mpls_global_path
-          preference: alternate
-        - name: mpls_r1_path
-          preference: alternate
-        - name: mpls_r2_path
-          preference: alternate
         - name: LAN_HA
           preference: preferred
         application_profiles:

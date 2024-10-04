@@ -350,14 +350,10 @@ router_path_selection:
     - name: internet_path
   - name: LB-PROD-AVT-POLICY-APP_TELNET_PROFILE
     path_groups:
-    - name: internet_path
     - name: mpls_r2_path
-      priority: 2
   - name: LB-PROD-AVT-POLICY-APP_SSH_PROFILE
     path_groups:
     - name: internet_path
-    - name: mpls_r2_path
-      priority: 2
   - name: LB-PROD-AVT-POLICY-DEFAULT
     path_groups:
     - name: internet_path
