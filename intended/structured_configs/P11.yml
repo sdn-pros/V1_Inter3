@@ -146,14 +146,6 @@ ethernet_interfaces:
   description: mpls_global
   flow_tracker:
     hardware: FLOW-TRACKER
-- name: Ethernet6
-  peer_type: l3_interface
-  ip_address: 192.52.75.1/24
-  shutdown: false
-  type: routed
-  description: ATT
-  flow_tracker:
-    hardware: FLOW-TRACKER
 loopback_interfaces:
 - name: Loopback0
   description: Router_ID
@@ -315,13 +307,6 @@ router_path_selection:
     id: 1001
     local_interfaces:
     - name: Ethernet2
-      stun:
-        server_profiles:
-        - internet_path-RR1-Ethernet3
-        - internet_path-RR2-Ethernet3
-        - internet_path-RR3-Ethernet3
-        - internet_path-RR4-Ethernet3
-    - name: Ethernet6
       stun:
         server_profiles:
         - internet_path-RR1-Ethernet3
@@ -520,12 +505,6 @@ metadata:
         value: wan
       - name: Carrier
         value: mpls_global
-    - interface: Ethernet6
-      tags:
-      - name: Type
-        value: wan
-      - name: Carrier
-        value: ATT
   cv_pathfinder:
     role: transit region
     ssl_profile: STUN-DTLS
@@ -546,9 +525,6 @@ metadata:
     - name: Ethernet5
       carrier: mpls_global
       pathgroup: mpls_global_path
-    - name: Ethernet6
-      carrier: ATT
-      pathgroup: internet_path
     pathfinders:
     - vtep_ip: 10.99.102.1
     - vtep_ip: 10.99.102.2

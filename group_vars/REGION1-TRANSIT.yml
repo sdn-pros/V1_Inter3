@@ -34,11 +34,11 @@ wan_router:
           wan_carrier: mpls_global
           flow_tracking:
             enabled: true
-        - name: Ethernet6
-          ip_address: 192.51.75.1/24
-          wan_carrier: ATT
-          flow_tracking:
-            enabled: true
+        #- name: Ethernet6
+        #  ip_address: 192.51.75.1/24
+        #  wan_carrier: ATT
+        #  flow_tracking:
+        #    enabled: true
     - name: P11
       id: 62
       cv_pathfinder_site: TRANSIT1
@@ -65,8 +65,8 @@ wan_router:
           wan_carrier: mpls_global
           flow_tracking:
             enabled: true
-        - name: Ethernet6
-          ip_address: 192.52.75.1/24
-          wan_carrier: ATT
-          flow_tracking:
-            enabled: true
+        #- name: Ethernet6
+        #  ip_address: 192.52.75.1/24
+        #  wan_carrier: ATT
+        #  flow_tracking:
+        #    enabled: true
